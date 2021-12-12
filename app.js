@@ -1,10 +1,13 @@
 const express = require("express");
 const app = express();
+const cors = require("cors");
 const stripe = require("stripe")(
   "sk_test_51K42yJDd9umCXJBoINyssGubWEJc34SnttOuBWvSOZJRZ159cKQm4yH1zLpVGN59x7WX5f1v21QeAI5dleAqLaPy00SOWHApLU"
 );
 
 app.use(express.json());
+
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Server Started");
@@ -14,10 +17,9 @@ app.post("/create-account", (req, res) => {
   stripe.accounts
     .create({
       type: "express",
-      country: "US",
+      country: "AU",
       email: req.body.email,
       business_type: "individual",
-
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
@@ -25,6 +27,9 @@ app.post("/create-account", (req, res) => {
     })
     .then((account) => {
       res.send(account);
+    })
+    .catch((err) => {
+      console.log(err);
     });
 });
 
@@ -95,6 +100,17 @@ app.post("/checkout", (req, res) => {
     })
     .then((resp) => {
       res.send(resp);
+    });
+});
+
+app.get("/get-account-information/:id", (req, res) => {
+  stripe.accounts
+    .retrieve(req.params.id)
+    .then((account) => {
+      res.send(account);
+    })
+    .catch((err) => {
+      res.send(err);
     });
 });
 
