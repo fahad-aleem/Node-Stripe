@@ -33,12 +33,46 @@ app.post("/create-account", (req, res) => {
     });
 });
 
+app.post("/payout", (req, res) => {
+  const amount = req.body.amount;
+  const currency = req.body.currency;
+  const statement_descriptor = req.body.description;
+  stripe.payouts
+    .create(
+      {
+        amount,
+        currency,
+        statement_descriptor,
+      },
+      { stripe_account: req.body.stripeAccountId }
+    )
+    .then((payout) => {
+      res.send(payout);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.send(err);
+    });
+});
+
+app.get("/create-dashboard-link/:id", (req, res) => {
+  stripe.accounts
+    .createLoginLink(req.params.id)
+    .then((link) => {
+      res.send(link);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.send(err);
+    });
+});
+
 app.post("/create-account-link", (req, res) => {
   stripe.accountLinks
     .create({
       account: req.body.account,
-      refresh_url: "https://example.com/reauth",
-      return_url: "https://example.com/return",
+      refresh_url: "http://localhost:3001/dashboard",
+      return_url: "http://localhost:3001/success",
       type: "account_onboarding",
     })
     .then((resp) => {
@@ -50,7 +84,7 @@ app.post("/payment-intents", (req, res) => {
   stripe.paymentIntents
     .create({
       amount: req.body.amount,
-      currency: "usd",
+      currency: "aud",
       payment_method_types: ["card"],
       description: "Payment for order",
       receipt_email: req.body.email,
@@ -114,6 +148,24 @@ app.get("/get-account-information/:id", (req, res) => {
     });
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+app.post("/api/payment", async (req, res) => {
+  const { amount, id } = req.body;
+  console.log(amount, id);
+  try {
+    const payment = await stripe.paymentIntents.create({
+      amount,
+      currency: "usd",
+      payment_method: id,
+      confirm: true,
+      description: "Payment for order",
+    });
+    console.log(payment);
+    res.status(200).send({ success: true });
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+app.listen(3003, () => {
+  console.log("Server is running on port 3003");
 });
